@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style type="text/tailwindcss">
+      @layer utilities {
+        .cell {
+          @apply w-8 h-8;
+        }
+        .empty {
+          @apply border border-gray-300;
+        }
+        .snake-head {
+          @apply bg-gray-600;
+        }
+        .snake {
+          @apply bg-gray-400;
+        }
+        .food {
+          @apply bg-yellow-500;
+        }
+      }
+    </style>
+    <title>Snake Game</title>
+  </head>
+  <body
+    class="w-full flex flex-col justify-center px-6 py-16 max-w-2xl mx-auto"
+  >
+    <h1 class="font-bold text-4xl text-center">Snake Game</h1>
+    <h3 class="font-semibold text-2xl text-center">
+      Your score is: <span id="score">1</span>
+    </h3>
+    <h5 id="lost-message" class="text-center font-medium hidden">
+      You&apos;ve lost. Press R to play again
+    </h5>
+    <div class="grid grid-cols-12 max-w-fit mx-auto my-4" id="board"></div>
+    <div class="w-full flex justify-center">
+      <button
+        id="retry-btn"
+        type="button"
+        class="text-white hidden bg-blue-700 max-w-fit hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+      >
+        Retry
+      </button>
+    </div>
+    <script src="index.js"></script>
+  </body>
+</html>
