@@ -124,6 +124,7 @@ class Board {
   }
 
   draw(snakePositions, foodPosition) {
+    this.#boardEl.innerHTML = "";
     this.#boardEl.style.gridTemplateColumns = `repeat(${this.colSize}, 1fr)`;
     this.#drawEmptyCells();
     this.#drawSnake(snakePositions);
@@ -465,11 +466,11 @@ class UI {
 }
 
 class Difficulty {
-  static #timeElapsed = 200;
+  static #timeElapsed = 300;
   static #startLength = 1;
-  static #startSpeed = 15;
-  static #endLength = 30;
-  static #endSpeed = 200;
+  static #startSpeed = 10;
+  static #endLength = 20;
+  static #endSpeed = 250;
   static getDifficultyTimeElapsed(currentScore) {
     return (
       this.#timeElapsed -
