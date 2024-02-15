@@ -1,7 +1,8 @@
 class Cell {
   static #Empty = 0;
   static #Snake = 1;
-  static #Food = 2;
+  static #SnakeHead = 2;
+  static #Food = 3;
 
   static get Empty() {
     return Cell.#Empty;
@@ -9,6 +10,10 @@ class Cell {
 
   static get Snake() {
     return Cell.#Snake;
+  }
+
+  static get SnakeHead() {
+    return Cell.#SnakeHead;
   }
 
   static get Food() {
@@ -32,6 +37,9 @@ class Cell {
       case Cell.Snake:
         element.className += "snake";
         break;
+      case Cell.SnakeHead:
+        element.className += "snake-head";
+        break;
       case Cell.Food:
         element.className += "food";
         break;
@@ -40,7 +48,7 @@ class Cell {
     }
   }
 
-  static createCell(row, col) {
+  static create(row, col) {
     const cell = document.createElement("div");
     cell.id = Cell.getId(row, col);
     Cell.color(cell, Cell.Empty);
@@ -72,43 +80,67 @@ class Position {
   static areEqual(position1, position2) {
     return position1.x === position2.x && position1.y === position2.y;
   }
+
+  static getRandomPosition() {
+    const positions = [
+      Position.Up,
+      Position.Down,
+      Position.Left,
+      Position.Right,
+    ];
+    return positions[Random.randRange(0, positions.length - 1)];
+  }
+}
+
+class Size {
+  static #Min = 8;
+  static #Max = 12;
+  static get Min() {
+    return this.#Min;
+  }
+  static get Max() {
+    return this.#Max;
+  }
+
+  static inRange(size) {
+    return size >= Size.Min && size <= Size.Max;
+  }
 }
 
 class Board {
+  #boardEl;
   #matrix;
-  #size = 12;
+  rowSize;
+  colSize;
+
   constructor() {
-    this.boardEl = document.getElementById("board");
-    this.#buildMatrix();
+    this.#boardEl = document.getElementById("board");
   }
 
-  get matrixSize() {
-    return this.#size;
-  }
-
-  #buildMatrix() {
-    this.#matrix = new Array(this.#size)
+  buildMatrix() {
+    this.#matrix = new Array(this.rowSize)
       .fill()
-      .map(() => new Array(this.#size).fill(Cell.Empty));
+      .map(() => new Array(this.colSize).fill(Cell.Empty));
   }
 
   draw(snakePositions, foodPosition) {
+    this.#boardEl.style.gridTemplateColumns = `repeat(${this.colSize}, 1fr)`;
     this.#drawEmptyCells();
     this.#drawSnake(snakePositions);
     this.#drawFood(foodPosition);
   }
 
   #drawEmptyCells() {
-    for (let i = 0; i < this.#size; i++)
-      for (let j = 0; j < this.#size; j++) {
+    for (let i = 0; i < this.rowSize; i++)
+      for (let j = 0; j < this.colSize; j++) {
         const cellElement = document.getElementById(Cell.getId(i, j));
         if (!cellElement) {
-          const newCellElement = Cell.createCell(i, j);
-          this.boardEl.appendChild(newCellElement);
+          const newCellElement = Cell.create(i, j);
+          this.#boardEl.appendChild(newCellElement);
           Cell.color(newCellElement, Cell.Empty);
         } else {
           Cell.color(cellElement, Cell.Empty);
-          this.boardEl.appendChild(cellElement);
+          this.#boardEl.appendChild(cellElement);
         }
         this.#matrix[i][j] = Cell.Empty;
       }
@@ -118,11 +150,11 @@ class Board {
    * @param {Position[]} snakePositions
    */
   #drawSnake(snakePositions) {
-    snakePositions.forEach((position) => {
+    snakePositions.forEach((position, index) => {
       const cellEl = document.getElementById(
         Cell.getId(position.x, position.y)
       );
-      Cell.color(cellEl, Cell.Snake);
+      Cell.color(cellEl, index === 0 ? Cell.SnakeHead : Cell.Snake);
       this.#matrix[position.x][position.y] = Cell.Snake;
     });
   }
@@ -153,10 +185,10 @@ class Snake {
     return this.#positions;
   }
 
-  spawn(matrixSize) {
+  spawn(rowSize, colSize) {
     // avoid instantly spawning right close to the boundaries
-    const randomX = Random.randRange(2, matrixSize - 2);
-    const randomY = Random.randRange(2, matrixSize - 2);
+    const randomX = Random.randRange(2, rowSize - 2);
+    const randomY = Random.randRange(2, colSize - 2);
     this.#positions = [new Position(randomX, randomY)];
     this.direction = Position.Up;
   }
@@ -180,8 +212,8 @@ class Snake {
     return Position.areEqual(this.head, foodPosition);
   }
 
-  checkIfDead(matrixSize) {
-    return this.#checkOutOfBound(matrixSize) || this.#hasCollidedWithTail;
+  checkIfDead(rowSize, colSize) {
+    return this.#checkOutOfBound(rowSize, colSize) || this.#hasCollidedWithTail;
   }
 
   get #hasCollidedWithTail() {
@@ -191,13 +223,38 @@ class Snake {
     );
   }
 
-  #checkOutOfBound(matrixSize) {
+  #checkOutOfBound(rowSize, colSize) {
     if (!this.head) return false;
     return (
-      this.head.x < 0 ||
-      this.head.y < 0 ||
-      this.head.x >= matrixSize ||
-      this.head.y >= matrixSize
+      this.#checkOutOfRowBounds(rowSize) || this.#checkOutOfColBounds(colSize)
+    );
+  }
+
+  get #checkOutOfLeftRowBound() {
+    return this.head.x < 0;
+  }
+
+  #checkOutOfRightRowBound(rowSize) {
+    return this.head.x >= rowSize;
+  }
+
+  get #checkOutOfLeftColBound() {
+    return this.head.y < 0;
+  }
+
+  #checkOutOfRightColBound(colSize) {
+    return this.head.y >= colSize;
+  }
+
+  #checkOutOfRowBounds(rowSize) {
+    return (
+      this.#checkOutOfLeftRowBound || this.#checkOutOfRightRowBound(rowSize)
+    );
+  }
+
+  #checkOutOfColBounds(colSize) {
+    return (
+      this.#checkOutOfLeftColBound || this.#checkOutOfRightColBound(colSize)
     );
   }
 
@@ -214,13 +271,14 @@ class Food {
   }
 
   /**
-   * @param {number} matrixSize
+   * @param {number} rowSize
+   * @param {number} colSize
    * @param {Position[]} snakePositions
    */
-  spawn(matrixSize, snakePositions) {
+  spawn(rowSize, colSize, snakePositions) {
     while (!this.#position || this.#checkInSnakeCells(snakePositions)) {
-      const randomX = Random.randRange(0, matrixSize - 1);
-      const randomY = Random.randRange(0, matrixSize - 1);
+      const randomX = Random.randRange(0, rowSize - 1);
+      const randomY = Random.randRange(0, colSize - 1);
       this.#position = new Position(randomX, randomY);
     }
   }
@@ -261,34 +319,59 @@ class Game {
   #init() {
     this.#hasLost = false;
     this.#currentScore = 1;
-    this.#snake.spawn(this.#board.matrixSize);
-    this.#food.spawn(this.#board.matrixSize, this.#snake.positions);
+    this.#snake.spawn(this.#board.rowSize, this.#board.colSize);
+    this.#food.spawn(
+      this.#board.rowSize,
+      this.#board.colSize,
+      this.#snake.positions
+    );
     this.#board.draw(this.#snake.positions, this.#food.position);
     this.#ui.displayScoreEarned(this.#currentScore);
-    this.#ui.hideLost();
+    this.#ui.hideLostCues();
   }
 
   start() {
+    this.#setupBoard();
     this.#init();
     this.#play();
   }
 
+  #setupBoard() {
+    const rowSize = this.#ui.inputSize("rows");
+    const colSize = this.#ui.inputSize("columns");
+    this.#board.rowSize = rowSize;
+    this.#board.colSize = colSize;
+    this.#board.buildMatrix();
+  }
+
   #play() {
-    const moveInterval = setInterval(() => {
+    this.#moveBasedOnDifficulty(
+      Difficulty.getDifficultyTimeElapsed(this.#currentScore)
+    );
+  }
+
+  #moveBasedOnDifficulty(timeElapsed) {
+    setTimeout(() => {
       this.#snake.move(this.#food.position);
       if (this.#snake.checkHasEatenFood(this.#food.position)) {
         this.#currentScore++;
-        this.#food.spawn(this.#board.matrixSize, this.#snake.positions);
+        this.#food.spawn(
+          this.#board.rowSize,
+          this.#board.colSize,
+          this.#snake.positions
+        );
         this.#ui.displayScoreEarned(this.#currentScore);
       }
-      if (!this.#snake.checkIfDead(this.#board.matrixSize)) {
+      if (!this.#snake.checkIfDead(this.#board.rowSize, this.#board.colSize)) {
         this.#board.draw(this.#snake.positions, this.#food.position);
+        this.#moveBasedOnDifficulty(
+          Difficulty.getDifficultyTimeElapsed(this.#currentScore)
+        );
       } else {
         this.#hasLost = true;
-        this.#ui.showLost();
-        clearInterval(moveInterval);
+        this.#ui.showLostCues();
       }
-    }, 200);
+    }, timeElapsed);
   }
 }
 
@@ -307,14 +390,25 @@ class UI {
     this.#scoreEl.textContent = currentScore;
   }
 
-  hideLost() {
+  hideLostCues() {
     this.#lostMessageEl.classList.add("hidden");
     this.#retryButton.classList.add("hidden");
   }
 
-  showLost() {
+  showLostCues() {
     this.#lostMessageEl.classList.remove("hidden");
     this.#retryButton.classList.remove("hidden");
+  }
+
+  /**
+   * @param {"rows" | "columns"} type
+   */
+  inputSize(type) {
+    const message = `Enter number of ${type} (${Size.Min}-${Size.Max})`;
+    let size = +prompt(message);
+    while (isNaN(size) || !Size.inRange(size))
+      size = +prompt("Invalid number of " + type + ". " + message);
+    return size;
   }
 
   /**
@@ -370,10 +464,37 @@ class UI {
   }
 }
 
+class Difficulty {
+  static #timeElapsed = 200;
+  static #startLength = 1;
+  static #startSpeed = 15;
+  static #endLength = 30;
+  static #endSpeed = 200;
+  static getDifficultyTimeElapsed(currentScore) {
+    return (
+      this.#timeElapsed -
+      CustomMath.lerp(
+        Difficulty.#startLength,
+        Difficulty.#startSpeed,
+        Difficulty.#endLength,
+        Difficulty.#endSpeed,
+        currentScore
+      )
+    );
+  }
+}
+
+class CustomMath {
+  static lerp(x0, y0, x1, y1, x) {
+    return (y0 * (x1 - x) + y1 * (x - x0)) / (x1 - x0);
+  }
+}
+
 const snake = new Snake();
-const board = new Board();
 const food = new Food();
 const ui = new UI();
+
+const board = new Board();
 const game = new Game(board, snake, food, ui);
 ui.handleKeydown(game);
 ui.handleRetryClick(game);
